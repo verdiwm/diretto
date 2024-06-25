@@ -16,7 +16,9 @@ colorous = "1.0.14"
 drm = "0.12.0"
 rustix = { version = "0.38.34", default-features = false, features = ["event"] }
 softbuffer = { version = "0.4.5", default-features = false, features = ["kms"] }
+tracing-subscriber = { version = "0.3.18", features = ["env-filter", "tracing-log"] }
 
 [dependencies]
 rustix = { version = "0.38.34", default-features = false }
 raw-window-handle = "0.6.2"
+tracing = "0.1.40"
