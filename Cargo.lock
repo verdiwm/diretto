@@ -129,6 +129,7 @@ dependencies = [
  "anyhow",
  "colorous",
  "drm",
+ "linux-raw-sys 0.6.4 (git+https://github.com/morr0ne/linux-raw-sys.git?branch=drm)",
  "raw-window-handle",
  "rustix",
  "softbuffer",
@@ -178,7 +179,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fd39dde40b6e196c2e8763f23d119ddb1a8714534bf7d77fa97a65b0feda3986"
 dependencies = [
  "libc",
- "linux-raw-sys 0.6.4",
+ "linux-raw-sys 0.6.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -250,6 +251,11 @@ name = "linux-raw-sys"
 version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f0b5399f6804fbab912acbd8878ed3532d506b7c951b8f9f164ef90fef39e3f4"
+
+[[package]]
+name = "linux-raw-sys"
+version = "0.6.4"
+source = "git+https://github.com/morr0ne/linux-raw-sys.git?branch=drm#d76f8dc24a07d13bd0f8771b6f202d45ab62d0c2"
 
 [[package]]
 name = "log"

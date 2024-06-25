@@ -22,3 +22,4 @@ tracing-subscriber = { version = "0.3.18", features = ["env-filter", "tracing-lo
 rustix = { version = "0.38.34", default-features = false }
 raw-window-handle = "0.6.2"
 tracing = "0.1.40"
+linux-raw-sys = { git = "https://github.com/morr0ne/linux-raw-sys.git", branch = "drm", version = "0.6.4", features = ["drm"] }
