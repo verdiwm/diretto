@@ -1,8 +1,9 @@
 use std::{
-    ffi::{c_int, CString},
+    ffi::{c_int, CStr, CString},
     fmt::Display,
     mem,
     num::NonZeroU32,
+    slice,
 };
 
 use linux_raw_sys::drm::{
@@ -54,7 +55,7 @@ impl Device {
             CString::from_vec_with_nul_unchecked(vec)
         }
 
-        let mut version: Box<drm_version> = Box::new(unsafe { mem::zeroed() });
+        let mut version: drm_version = unsafe { mem::zeroed() };
 
         self.ioctl_rw::<0x00, drm_version>(&mut version)?;
 
@@ -135,8 +136,7 @@ impl Device {
         self.ioctl_rw::<0xA7, drm_mode_get_connector>(&mut connector)?;
 
         let mut encoders: Vec<u32> = create_and_reserve_buf(connector.count_encoders as usize);
-        let mut modes: Vec<drm_mode_modeinfo> =
-            create_and_reserve_buf(connector.count_encoders as usize); // FIXME: handle special case where modes is empty
+        let mut modes: Vec<Mode> = create_and_reserve_buf(connector.count_encoders as usize); // FIXME: handle special case where modes is empty
         let mut props: Vec<u32> = create_and_reserve_buf(connector.count_props as usize);
         let mut prop_values: Vec<u64> = create_and_reserve_buf(connector.count_props as usize);
 
@@ -230,7 +230,7 @@ pub struct Connector {
     pub subpixel: u32,
     pub pad: u32,
     pub encoders: Vec<u32>,
-    pub modes: Vec<drm_mode_modeinfo>,
+    pub modes: Vec<Mode>,
     pub props: Vec<u32>,
     pub prop_values: Vec<u64>,
 }
@@ -248,5 +248,20 @@ impl Display for ConnectorId {
 impl From<ConnectorId> for u32 {
     fn from(value: ConnectorId) -> Self {
         value.0.get()
+    }
+}
+
+#[derive(Debug)]
+#[repr(transparent)]
+pub struct Mode(pub drm_mode_modeinfo);
+
+impl Mode {
+    pub const fn name(&self) -> &CStr {
+        unsafe {
+            CStr::from_bytes_with_nul_unchecked(slice::from_raw_parts(
+                self.0.name.as_ptr().cast(),
+                self.0.name.len(),
+            ))
+        }
     }
 }
