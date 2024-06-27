@@ -3,18 +3,21 @@ use std::{
     fmt::Display,
     mem,
     num::NonZeroU32,
+    ptr::null_mut,
     slice,
 };
 
 use linux_raw_sys::drm::{
-    drm_mode_card_res, drm_mode_create_dumb, drm_mode_fb_cmd, drm_mode_get_connector,
-    drm_mode_get_encoder, drm_mode_modeinfo, drm_version, DRM_IOCTL_BASE,
+    drm_mode_card_res, drm_mode_create_dumb, drm_mode_crtc, drm_mode_fb_cmd,
+    drm_mode_get_connector, drm_mode_get_encoder, drm_mode_map_dumb, drm_mode_modeinfo,
+    drm_version, DRM_IOCTL_BASE,
 };
 use raw_window_handle::{DisplayHandle, DrmDisplayHandle};
 use rustix::{
     fd::{AsRawFd, OwnedFd},
     io,
     ioctl::{ioctl, ReadWriteOpcode, Updater},
+    mm::{mmap, munmap, MapFlags, ProtFlags},
 };
 
 #[derive(Debug)]
@@ -186,7 +189,8 @@ impl Device {
         })
     }
 
-    pub fn get_encoder(&self, encoder_id: EncoderId) -> io::Result<drm_mode_get_encoder> {
+    // FIXME: use encoderid
+    pub fn get_encoder(&self, encoder_id: u32) -> io::Result<drm_mode_get_encoder> {
         let mut encoder: drm_mode_get_encoder = unsafe { mem::zeroed() };
 
         encoder.encoder_id = encoder_id.into();
@@ -216,7 +220,12 @@ impl Device {
     }
 
     // FIXME: this prob needs some generics instead of DumbBuffer
-    pub fn add_framebuffer(&self, framebuffer: DumbBuffer, bpp: u32, depth: u32) -> io::Result<()> {
+    pub fn add_framebuffer(
+        &self,
+        framebuffer: &DumbBuffer,
+        bpp: u32,
+        depth: u32,
+    ) -> io::Result<()> {
         let mut fb_cmd: drm_mode_fb_cmd = unsafe { mem::zeroed() };
 
         fb_cmd.fb_id = framebuffer.fb_id;
@@ -230,6 +239,77 @@ impl Device {
         self.ioctl_rw::<0xAE, drm_mode_fb_cmd>(&mut fb_cmd)?;
 
         Ok(())
+    }
+
+    pub fn map_dumb_buffer(&self, framebuffer: &DumbBuffer) -> io::Result<DumbBufferMapping> {
+        let mut map: drm_mode_map_dumb = unsafe { mem::zeroed() };
+
+        map.handle = framebuffer.fb_id;
+
+        self.ioctl_rw::<0xB3, drm_mode_map_dumb>(&mut map)?;
+
+        let map = unsafe {
+            mmap(
+                null_mut(),
+                framebuffer.size as usize,
+                ProtFlags::READ | ProtFlags::WRITE,
+                MapFlags::SHARED,
+                &self.fd,
+                map.offset,
+            )?
+        };
+
+        let map = unsafe { std::slice::from_raw_parts_mut(map.cast(), framebuffer.size as usize) };
+        map.fill(0);
+
+        Ok(DumbBufferMapping { inner: map })
+    }
+
+    pub fn set_crtc(
+        &self,
+        crtc_id: CrtcId,
+        fb_id: u32,
+        x: u32,
+        y: u32,
+        connectors: &[ConnectorId],
+        mode: Mode,
+    ) -> io::Result<()> {
+        let mut crtc: drm_mode_crtc = unsafe { mem::zeroed() };
+
+        crtc.x = x;
+        crtc.y = y;
+        crtc.crtc_id = crtc_id.into();
+        crtc.fb_id = fb_id;
+        crtc.set_connectors_ptr = connectors.as_ptr() as _;
+        crtc.count_connectors = connectors.len() as _;
+        crtc.mode = mode.0;
+        crtc.mode_valid = 1;
+
+        self.ioctl_rw::<0xA2, drm_mode_crtc>(&mut crtc)
+    }
+}
+
+pub struct DumbBufferMapping<'a> {
+    inner: &'a mut [u8],
+}
+
+impl Drop for DumbBufferMapping<'_> {
+    fn drop(&mut self) {
+        unsafe {
+            let _ = munmap(self.inner.as_mut_ptr() as *mut _, self.inner.len());
+        }
+    }
+}
+
+impl AsRef<[u8]> for DumbBufferMapping<'_> {
+    fn as_ref(&self) -> &[u8] {
+        self.inner
+    }
+}
+
+impl AsMut<[u8]> for DumbBufferMapping<'_> {
+    fn as_mut(&mut self) -> &mut [u8] {
+        self.inner
     }
 }
 
@@ -332,6 +412,12 @@ impl From<ConnectorId> for u32 {
 #[repr(transparent)]
 pub struct CrtcId(NonZeroU32);
 
+impl CrtcId {
+    pub const unsafe fn new_unchecked(id: u32) -> Self {
+        Self(NonZeroU32::new_unchecked(id))
+    }
+}
+
 impl Display for CrtcId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.0.fmt(f)
@@ -360,7 +446,7 @@ impl From<EncoderId> for u32 {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 #[repr(transparent)]
 pub struct Mode(pub drm_mode_modeinfo);
 
