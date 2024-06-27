@@ -23,7 +23,7 @@ tokio = { version = "1.38.0", features = ["macros", "rt-multi-thread"] }
 drm-fourcc = "2.2.0"
 
 [dependencies]
-rustix = { version = "0.38.34", default-features = false }
+rustix = { version = "0.38.34", default-features = false, features = ["mm"] }
 raw-window-handle = "0.6.2"
 tracing = "0.1.40"
 linux-raw-sys = { git = "https://github.com/morr0ne/linux-raw-sys.git", branch = "drm", version = "0.6.4", features = ["drm"] }
