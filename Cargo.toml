@@ -20,7 +20,7 @@ tracing-subscriber = { version = "0.3.18", features = ["env-filter", "tracing-lo
 wgpu = { version = "0.20.1", default-features = false, features = ["wgsl"] }
 winit = { version = "0.30.3", default-features = false, features = ["rwh_06", "wayland"] }
 tokio = { version = "1.38.0", features = ["macros", "rt-multi-thread"] }
-
+drm-fourcc = "2.2.0"
 
 [dependencies]
 rustix = { version = "0.38.34", default-features = false }
