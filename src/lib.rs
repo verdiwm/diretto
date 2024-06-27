@@ -23,7 +23,7 @@ pub struct Device {
 
 // FIXME: take into account hotplug
 impl Device {
-    pub unsafe fn new(fd: OwnedFd) -> Self {
+    pub const unsafe fn new_unchecked(fd: OwnedFd) -> Self {
         Self { fd }
     }
 
