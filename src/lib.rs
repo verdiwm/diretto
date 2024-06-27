@@ -7,7 +7,8 @@ use std::{
 };
 
 use linux_raw_sys::drm::{
-    drm_mode_card_res, drm_mode_get_connector, drm_mode_modeinfo, drm_version, DRM_IOCTL_BASE,
+    drm_mode_card_res, drm_mode_create_dumb, drm_mode_fb_cmd, drm_mode_get_connector,
+    drm_mode_get_encoder, drm_mode_modeinfo, drm_version, DRM_IOCTL_BASE,
 };
 use raw_window_handle::{DisplayHandle, DrmDisplayHandle};
 use rustix::{
@@ -91,10 +92,11 @@ impl Device {
         self.ioctl_rw::<0xA0, drm_mode_card_res>(&mut resources)?;
 
         let mut fbs: Vec<u32> = create_and_reserve_buf(resources.count_fbs as usize);
-        let mut crtcs: Vec<u32> = create_and_reserve_buf(resources.count_crtcs as usize);
+        let mut crtcs: Vec<CrtcId> = create_and_reserve_buf(resources.count_crtcs as usize);
         let mut connectors: Vec<ConnectorId> =
             create_and_reserve_buf(resources.count_connectors as usize);
-        let mut encoders: Vec<u32> = create_and_reserve_buf(resources.count_encoders as usize);
+        let mut encoders: Vec<EncoderId> =
+            create_and_reserve_buf(resources.count_encoders as usize);
 
         resources.fb_id_ptr = fbs.as_mut_ptr() as _;
         resources.crtc_id_ptr = crtcs.as_mut_ptr() as _;
@@ -159,6 +161,7 @@ impl Device {
             connector_type,
             connector_type_id,
             connection,
+            connector_id,
             mm_width,
             mm_height,
             subpixel,
@@ -168,7 +171,7 @@ impl Device {
 
         Ok(Connector {
             encoder_id,
-            connector_id,
+            connector_id: unsafe { ConnectorId::new_unchecked(connector_id) },
             connector_type,
             connector_type_id,
             connection,
@@ -181,6 +184,52 @@ impl Device {
             props,
             prop_values,
         })
+    }
+
+    pub fn get_encoder(&self, encoder_id: EncoderId) -> io::Result<drm_mode_get_encoder> {
+        let mut encoder: drm_mode_get_encoder = unsafe { mem::zeroed() };
+
+        encoder.encoder_id = encoder_id.into();
+
+        self.ioctl_rw::<0xA6, drm_mode_get_encoder>(&mut encoder)?;
+
+        Ok(encoder)
+    }
+
+    pub fn create_dumb_buffer(&self, height: u32, width: u32, bpp: u32) -> io::Result<DumbBuffer> {
+        let mut create: drm_mode_create_dumb = unsafe { mem::zeroed() };
+
+        create.height = height;
+        create.width = width;
+        create.bpp = bpp;
+
+        self.ioctl_rw::<0xB2, drm_mode_create_dumb>(&mut create)?;
+
+        Ok(DumbBuffer {
+            fb_id: create.handle,
+            height,
+            width,
+            stride: create.pitch,
+            handle: create.handle,
+            size: create.size,
+        })
+    }
+
+    // FIXME: this prob needs some generics instead of DumbBuffer
+    pub fn add_framebuffer(&self, framebuffer: DumbBuffer, bpp: u32, depth: u32) -> io::Result<()> {
+        let mut fb_cmd: drm_mode_fb_cmd = unsafe { mem::zeroed() };
+
+        fb_cmd.fb_id = framebuffer.fb_id;
+        fb_cmd.width = framebuffer.width;
+        fb_cmd.height = framebuffer.height;
+        fb_cmd.pitch = framebuffer.stride;
+        fb_cmd.bpp = bpp;
+        fb_cmd.depth = depth;
+        fb_cmd.handle = framebuffer.handle;
+
+        self.ioctl_rw::<0xAE, drm_mode_fb_cmd>(&mut fb_cmd)?;
+
+        Ok(())
     }
 }
 
@@ -209,14 +258,36 @@ pub struct Version {
 #[derive(Debug)]
 pub struct Resources {
     pub fbs: Vec<u32>,
-    pub crtcs: Vec<u32>,
+    pub crtcs: Vec<CrtcId>,
     pub connectors: Vec<ConnectorId>,
-    pub encoders: Vec<u32>,
+    pub encoders: Vec<EncoderId>,
     pub min_width: u32,
     pub max_width: u32,
     pub min_height: u32,
     pub max_height: u32,
 }
+
+// impl Resources {
+//     pub fn get_connectors(&self, probe: bool) -> GetConnectors {
+//         GetConnectors {
+//             connectors: &self.connectors,
+//             probe,
+//         }
+//     }
+// }
+
+// pub struct GetConnectors<'a> {
+//     connectors: &'a [ConnectorId],
+//     probe: bool,
+// }
+
+// impl Iterator for GetConnectors<'_> {
+//     type Item = io::Result<Connector>;
+
+//     fn next(&mut self) -> Option<Self::Item> {
+//         self.get_connector(self., true)
+//     }
+// }
 
 #[derive(Debug)]
 pub struct Connector {
@@ -239,6 +310,12 @@ pub struct Connector {
 #[repr(transparent)]
 pub struct ConnectorId(NonZeroU32);
 
+impl ConnectorId {
+    pub const unsafe fn new_unchecked(id: u32) -> Self {
+        Self(NonZeroU32::new_unchecked(id))
+    }
+}
+
 impl Display for ConnectorId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.0.fmt(f)
@@ -247,6 +324,38 @@ impl Display for ConnectorId {
 
 impl From<ConnectorId> for u32 {
     fn from(value: ConnectorId) -> Self {
+        value.0.get()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(transparent)]
+pub struct CrtcId(NonZeroU32);
+
+impl Display for CrtcId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl From<CrtcId> for u32 {
+    fn from(value: CrtcId) -> Self {
+        value.0.get()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(transparent)]
+pub struct EncoderId(NonZeroU32);
+
+impl Display for EncoderId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl From<EncoderId> for u32 {
+    fn from(value: EncoderId) -> Self {
         value.0.get()
     }
 }
@@ -264,4 +373,14 @@ impl Mode {
             ))
         }
     }
+}
+
+#[derive(Debug)]
+pub struct DumbBuffer {
+    pub fb_id: u32,
+    pub height: u32,
+    pub width: u32,
+    pub stride: u32,
+    pub handle: u32,
+    pub size: u64,
 }
