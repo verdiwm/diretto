@@ -14,7 +14,7 @@ use linux_raw_sys::drm::{
 };
 
 use rustix::{
-    fd::{AsRawFd, OwnedFd},
+    fd::{AsFd, BorrowedFd, OwnedFd},
     io,
     ioctl::{ioctl, ReadWriteOpcode, Updater},
     mm::{mmap, munmap, MapFlags, ProtFlags},
@@ -23,6 +23,12 @@ use rustix::{
 #[derive(Debug)]
 pub struct Device {
     fd: OwnedFd,
+}
+
+impl AsFd for Device {
+    fn as_fd(&self) -> BorrowedFd<'_> {
+        self.fd.as_fd()
+    }
 }
 
 // FIXME: take into account hotplug
@@ -35,7 +41,7 @@ impl Device {
     fn ioctl_rw<const NUM: u8, T>(&self, data: &mut T) -> io::Result<()> {
         unsafe {
             ioctl(
-                &self.fd,
+                self,
                 Updater::<ReadWriteOpcode<DRM_IOCTL_BASE, NUM, T>, T>::new(data),
             )
         }
@@ -250,7 +256,7 @@ impl Device {
                 framebuffer.size as usize,
                 ProtFlags::READ | ProtFlags::WRITE,
                 MapFlags::SHARED,
-                &self.fd,
+                self,
                 map.offset,
             )?
         };
