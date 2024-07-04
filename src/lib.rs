@@ -462,12 +462,16 @@ impl Mode {
         }
     }
 
-    pub const fn display_width(self) -> u16 {
+    pub const fn display_width(&self) -> u16 {
         self.0.hdisplay
     }
 
-    pub const fn display_height(self) -> u16 {
+    pub const fn display_height(&self) -> u16 {
         self.0.vdisplay
+    }
+
+    pub const fn vertical_refresh_rate(&self) -> u32 {
+        self.0.vrefresh
     }
 }
 
