@@ -12,7 +12,7 @@ use linux_raw_sys::drm::{
     drm_mode_get_connector, drm_mode_get_encoder, drm_mode_map_dumb, drm_mode_modeinfo,
     drm_version, DRM_IOCTL_BASE,
 };
-use raw_window_handle::{DisplayHandle, DrmDisplayHandle};
+
 use rustix::{
     fd::{AsRawFd, OwnedFd},
     io,
@@ -29,10 +29,6 @@ pub struct Device {
 impl Device {
     pub const unsafe fn new_unchecked(fd: OwnedFd) -> Self {
         Self { fd }
-    }
-
-    pub fn display_handle(&self) -> DisplayHandle {
-        unsafe { DisplayHandle::borrow_raw(DrmDisplayHandle::new(self.fd.as_raw_fd()).into()) }
     }
 
     #[inline]
