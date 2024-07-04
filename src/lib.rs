@@ -9,8 +9,8 @@ use std::{
 
 use linux_raw_sys::drm::{
     drm_mode_card_res, drm_mode_create_dumb, drm_mode_crtc, drm_mode_fb_cmd,
-    drm_mode_get_connector, drm_mode_get_encoder, drm_mode_map_dumb, drm_mode_modeinfo,
-    drm_version, DRM_IOCTL_BASE,
+    drm_mode_get_connector, drm_mode_get_encoder, drm_mode_get_plane_res, drm_mode_map_dumb,
+    drm_mode_modeinfo, drm_version, DRM_IOCTL_BASE,
 };
 
 use rustix::{
@@ -143,7 +143,7 @@ impl Device {
         self.ioctl_rw::<0xA7, drm_mode_get_connector>(&mut connector)?;
 
         let mut encoders: Vec<u32> = create_and_reserve_buf(connector.count_encoders as usize);
-        let mut modes: Vec<Mode> = create_and_reserve_buf(connector.count_encoders as usize); // FIXME: handle special case where modes is empty
+        let mut modes: Vec<Mode> = create_and_reserve_buf(connector.count_modes as usize); // FIXME: handle special case where modes is empty
         let mut props: Vec<u32> = create_and_reserve_buf(connector.count_props as usize);
         let mut prop_values: Vec<u64> = create_and_reserve_buf(connector.count_props as usize);
 
@@ -288,6 +288,22 @@ impl Device {
         crtc.mode_valid = 1;
 
         self.ioctl_rw::<0xA2, drm_mode_crtc>(&mut crtc)
+    }
+
+    pub fn get_plane_resources(&self) -> io::Result<Vec<u32>> {
+        let mut res: drm_mode_get_plane_res = unsafe { mem::zeroed() };
+
+        self.ioctl_rw::<0xB5, drm_mode_get_plane_res>(&mut res)?;
+
+        let mut vec: Vec<u32> = create_and_reserve_buf(res.count_planes as usize);
+
+        res.plane_id_ptr = vec.as_mut_ptr() as _;
+
+        self.ioctl_rw::<0xB5, drm_mode_get_plane_res>(&mut res)?;
+
+        unsafe { vec.set_len(res.count_planes as usize) }
+
+        Ok(vec)
     }
 }
 
