@@ -450,7 +450,7 @@ impl From<EncoderId> for u32 {
 
 #[derive(Debug, Clone, Copy)]
 #[repr(transparent)]
-pub struct Mode(pub drm_mode_modeinfo);
+pub struct Mode(drm_mode_modeinfo);
 
 impl Mode {
     pub const fn name(&self) -> &CStr {
@@ -460,6 +460,14 @@ impl Mode {
                 self.0.name.len(),
             ))
         }
+    }
+
+    pub const fn display_width(self) -> u16 {
+        self.0.hdisplay
+    }
+
+    pub const fn display_height(self) -> u16 {
+        self.0.vdisplay
     }
 }
 
