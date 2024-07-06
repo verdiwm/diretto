@@ -489,6 +489,13 @@ impl Mode {
     pub const fn vertical_refresh_rate(&self) -> u32 {
         self.0.vrefresh
     }
+
+    pub fn wsi_refresh_rate(&self) -> u32 {
+        ((self.0.clock as f64 * 1000.0
+            / (self.0.htotal as f64 * self.0.vtotal as f64 * self.0.vscan.max(1) as f64))
+            * 1000.0
+            + 0.5) as u32
+    }
 }
 
 #[derive(Debug)]
