@@ -426,6 +426,12 @@ impl From<ConnectorId> for u32 {
     }
 }
 
+impl From<ConnectorId> for NonZeroU32 {
+    fn from(value: ConnectorId) -> Self {
+        value.0
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
 pub struct CrtcId(NonZeroU32);
