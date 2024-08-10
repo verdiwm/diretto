@@ -74,15 +74,15 @@ async fn main() -> Result<()> {
 
     let display_handle = unsafe {
         DisplayHandle::borrow_raw({
-            let handle =
-                DrmDisplayHandle::new(device.as_fd().as_raw_fd(), connector.connector_id.into());
+            let handle = DrmDisplayHandle::new(device.as_fd().as_raw_fd());
             handle.into()
         })
     };
 
     let window_handle = unsafe {
         WindowHandle::borrow_raw({
-            let handle = DrmWindowHandle::new(plane.into());
+            let handle =
+                DrmWindowHandle::new_with_connector_id(plane, connector.connector_id.into());
             handle.into()
         })
     };
@@ -117,6 +117,7 @@ async fn main() -> Result<()> {
                 required_features: wgpu::Features::empty(),
                 // Make sure we use the texture resolution limits from the adapter, so we can support images the size of the swapchain.
                 required_limits: wgpu::Limits::default().using_resolution(adapter.limits()),
+                memory_hints: wgpu::MemoryHints::MemoryUsage,
             },
             None,
         )
@@ -143,13 +144,13 @@ async fn main() -> Result<()> {
         layout: Some(&pipeline_layout),
         vertex: wgpu::VertexState {
             module: &shader,
-            entry_point: "vs_main",
+            entry_point: Some("vs_main"),
             buffers: &[],
             compilation_options: Default::default(),
         },
         fragment: Some(wgpu::FragmentState {
             module: &shader,
-            entry_point: "fs_main",
+            entry_point: Some("fs_main"),
             compilation_options: Default::default(),
             targets: &[Some(swapchain_format.into())],
         }),
@@ -157,6 +158,7 @@ async fn main() -> Result<()> {
         depth_stencil: None,
         multisample: wgpu::MultisampleState::default(),
         multiview: None,
+        cache: None,
     });
 
     let config = surface
@@ -166,13 +168,12 @@ async fn main() -> Result<()> {
             mode.display_height().into(),
         )
         .expect("Surface not supported by adapter");
-    
+
     surface.configure(&device, &config);
 
     let start = Instant::now();
 
     while Instant::now().duration_since(start) < Duration::from_secs(5) {
-
         let frame = surface
             .get_current_texture()
             .expect("Failed to acquire next swap chain texture");
