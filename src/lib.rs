@@ -267,6 +267,16 @@ impl Device {
         Ok(DumbBufferMapping { inner: map })
     }
 
+    pub fn get_crtc(&self, crtc_id: CrtcId) -> io::Result<drm_mode_crtc> {
+        let mut crtc: drm_mode_crtc = unsafe { mem::zeroed() };
+
+        crtc.crtc_id = crtc_id.into();
+
+        self.ioctl_rw::<0xA1, drm_mode_crtc>(&mut crtc)?;
+
+        Ok(crtc)
+    }
+
     pub fn set_crtc(
         &self,
         crtc_id: CrtcId,
@@ -472,7 +482,7 @@ impl From<EncoderId> for u32 {
 
 #[derive(Debug, Clone, Copy)]
 #[repr(transparent)]
-pub struct Mode(drm_mode_modeinfo);
+pub struct Mode(pub drm_mode_modeinfo);
 
 impl Mode {
     pub const fn name(&self) -> &CStr {
