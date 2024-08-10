@@ -10,6 +10,13 @@ documentation = "https://docs.rs/diretto"
 repository = "https://github.com/verdiwm/diretto"
 include = ["src/**/*.rs", "README.md", "LICENSE"]
 
+[dependencies]
+rustix = { version = "0.38.34", default-features = false, features = ["mm"] }
+tracing = "0.1.40"
+linux-raw-sys = { git = "https://github.com/morr0ne/linux-raw-sys.git", branch = "drm", version = "0.6.4", features = [
+    "drm",
+] }
+
 [dev-dependencies]
 anyhow = "1.0.86"
 colorous = "1.0.14"
@@ -20,22 +27,20 @@ tracing-subscriber = { version = "0.3.18", features = [
     "env-filter",
     "tracing-log",
 ] }
-wgpu = { version = "0.20.1", default-features = false, features = ["wgsl"] }
-winit = { version = "0.30.3", default-features = false, features = [
+wgpu = { version = "22.0.0", default-features = false, features = ["wgsl"] }
+winit = { version = "0.30.5", default-features = false, features = [
     "rwh_06",
     "wayland",
 ] }
-tokio = { version = "1.38.0", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.39.2", features = ["macros", "rt-multi-thread"] }
 drm-fourcc = "2.2.0"
 raw-window-handle = "0.6.2"
+bytemuck = { version = "1.16.3", features = ["derive"] }
+image = "0.25.2"
+rand = "0.8.5"
 
-[dependencies]
-rustix = { version = "0.38.34", default-features = false, features = ["mm"] }
-tracing = "0.1.40"
-linux-raw-sys = { git = "https://github.com/morr0ne/linux-raw-sys.git", branch = "drm", version = "0.6.4", features = [
-    "drm",
-] }
 
 [patch.crates-io]
 wgpu = { git = "https://github.com/morr0ne/wgpu", branch = "drm-support" }
+# wgpu = { path = "../wgpu/wgpu" }
 raw-window-handle = { git = "https://github.com/morr0ne/raw-window-handle", branch = "drm-connector" }
