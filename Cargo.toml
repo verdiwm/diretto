@@ -11,14 +11,14 @@ repository = "https://github.com/verdiwm/diretto"
 include = ["src/**/*.rs", "README.md", "LICENSE"]
 
 [dependencies]
-rustix = { version = "0.38.34", default-features = false, features = ["mm"] }
+rustix = { version = "0.38.37", default-features = false, features = ["mm"] }
 tracing = "0.1.40"
 linux-raw-sys = { git = "https://github.com/morr0ne/linux-raw-sys.git", branch = "drm", version = "0.6.4", features = [
     "drm",
 ] }
 
 [dev-dependencies]
-anyhow = "1.0.86"
+anyhow = "1.0.89"
 rustix = { version = "0.38.34", default-features = false, features = [
     "event",
     "fs",
@@ -29,9 +29,9 @@ tracing-subscriber = { version = "0.3.18", features = [
     "tracing-log",
 ] }
 wgpu = { version = "22.0.0", default-features = false, features = ["wgsl"] }
-tokio = { version = "1.39.2", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.40.0", features = ["macros", "rt-multi-thread"] }
 raw-window-handle = "0.6.2"
-bytemuck = { version = "1.16.3", features = ["derive"] }
+bytemuck = { version = "1.18.0", features = ["derive"] }
 image = "0.25.2"
 rand = "0.8.5"
 
