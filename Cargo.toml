@@ -11,11 +11,9 @@ repository = "https://github.com/verdiwm/diretto"
 include = ["src/**/*.rs", "README.md", "LICENSE"]
 
 [dependencies]
+drm-sys = "0.8.0"
 rustix = { version = "0.38.42", default-features = false, features = ["mm"] }
 tracing = "0.1.41"
-linux-raw-sys = { git = "https://github.com/morr0ne/linux-raw-sys.git", branch = "drm", version = "0.6.4", features = [
-    "drm",
-] }
 
 [dev-dependencies]
 anyhow = "1.0.94"

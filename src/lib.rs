@@ -7,7 +7,7 @@ use std::{
     slice,
 };
 
-use linux_raw_sys::drm::{
+use drm_sys::{
     drm_mode_card_res, drm_mode_create_dumb, drm_mode_crtc, drm_mode_fb_cmd,
     drm_mode_get_connector, drm_mode_get_encoder, drm_mode_get_plane_res, drm_mode_map_dumb,
     drm_mode_modeinfo, drm_version, DRM_IOCTL_BASE,
