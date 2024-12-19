@@ -11,28 +11,28 @@ repository = "https://github.com/verdiwm/diretto"
 include = ["src/**/*.rs", "README.md", "LICENSE"]
 
 [dependencies]
-rustix = { version = "0.38.37", default-features = false, features = ["mm"] }
-tracing = "0.1.40"
+rustix = { version = "0.38.42", default-features = false, features = ["mm"] }
+tracing = "0.1.41"
 linux-raw-sys = { git = "https://github.com/morr0ne/linux-raw-sys.git", branch = "drm", version = "0.6.4", features = [
     "drm",
 ] }
 
 [dev-dependencies]
-anyhow = "1.0.89"
+anyhow = "1.0.94"
 rustix = { version = "0.38.34", default-features = false, features = [
     "event",
     "fs",
     "std",
 ] }
-tracing-subscriber = { version = "0.3.18", features = [
+tracing-subscriber = { version = "0.3.19", features = [
     "env-filter",
     "tracing-log",
 ] }
-wgpu = { version = "22.0.0", default-features = false, features = ["wgsl"] }
-tokio = { version = "1.40.0", features = ["macros", "rt-multi-thread"] }
+wgpu = { version = "23.0.1", default-features = false, features = ["wgsl"] }
+tokio = { version = "1.42.0", features = ["macros", "rt-multi-thread"] }
 raw-window-handle = "0.6.2"
-bytemuck = { version = "1.18.0", features = ["derive"] }
-image = "0.25.2"
+bytemuck = { version = "1.20.0", features = ["derive"] }
+image = "0.25.5"
 rand = "0.8.5"
 
 [patch.crates-io]
