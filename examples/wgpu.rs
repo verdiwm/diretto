@@ -1,16 +1,14 @@
 use std::{
     borrow::Cow,
+    io,
+    os::fd::{AsFd, AsRawFd},
     time::{Duration, Instant},
 };
 
 use anyhow::{Context, Result};
 use diretto::{Connector, Device};
 use raw_window_handle::{DisplayHandle, DrmDisplayHandle, DrmWindowHandle, WindowHandle};
-use rustix::{
-    fd::{AsFd, AsRawFd},
-    fs::{self, Mode, OFlags},
-    io,
-};
+use rustix::fs::{self, Mode, OFlags};
 use tracing::{debug, info};
 use wgpu::SurfaceTargetUnsafe;
 
