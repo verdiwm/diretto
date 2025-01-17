@@ -12,7 +12,10 @@ include = ["src/**/*.rs", "README.md", "LICENSE"]
 
 [dependencies]
 drm-sys = "0.8.0"
-rustix = { version = "0.38.43", default-features = false, features = ["mm"] }
+rustix = { version = "0.38.43", default-features = false, features = [
+    "mm",
+    "std",
+] }
 tracing = "0.1.41"
 
 [dev-dependencies]

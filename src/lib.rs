@@ -1,8 +1,9 @@
 use std::{
     ffi::{c_int, CStr, CString},
     fmt::Display,
-    mem,
+    io, mem,
     num::NonZeroU32,
+    os::fd::{AsFd, BorrowedFd, OwnedFd},
     ptr::null_mut,
     slice,
 };
@@ -14,8 +15,6 @@ use drm_sys::{
 };
 
 use rustix::{
-    fd::{AsFd, BorrowedFd, OwnedFd},
-    io,
     ioctl::{ioctl, ReadWriteOpcode, Updater},
     mm::{mmap, munmap, MapFlags, ProtFlags},
 };
@@ -38,7 +37,7 @@ impl Device {
     }
 
     #[inline]
-    fn ioctl_rw<const NUM: u8, T>(&self, data: &mut T) -> io::Result<()> {
+    fn ioctl_rw<const NUM: u8, T>(&self, data: &mut T) -> rustix::io::Result<()> {
         unsafe {
             ioctl(
                 self,
@@ -298,6 +297,7 @@ impl Device {
         crtc.mode_valid = 1;
 
         self.ioctl_rw::<0xA2, drm_mode_crtc>(&mut crtc)
+            .map_err(io::Error::from)
     }
 
     pub fn get_plane_resources(&self) -> io::Result<Vec<u32>> {
