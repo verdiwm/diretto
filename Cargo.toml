@@ -1,3 +1,6 @@
+[workspace]
+members = ["gen"]
+
 [package]
 name = "diretto"
 version = "0.0.4"
