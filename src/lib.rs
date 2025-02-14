@@ -15,13 +15,10 @@ pub mod sys;
 use sys::{
     drm_mode_card_res, drm_mode_create_dumb, drm_mode_crtc, drm_mode_fb_cmd,
     drm_mode_get_connector, drm_mode_get_encoder, drm_mode_get_plane_res, drm_mode_map_dumb,
-    drm_mode_modeinfo, drm_version, DRM_IOCTL_BASE,
+    drm_mode_modeinfo, drm_version,
 };
 
-use rustix::{
-    ioctl::{ioctl, ReadWriteOpcode, Updater},
-    mm::{mmap, munmap, MapFlags, ProtFlags},
-};
+use rustix::mm::{mmap, munmap, MapFlags, ProtFlags};
 
 #[derive(Debug)]
 pub struct Device {
@@ -40,16 +37,6 @@ impl Device {
         Self { fd }
     }
 
-    #[inline]
-    fn ioctl_rw<const NUM: u8, T>(&self, data: &mut T) -> rustix::io::Result<()> {
-        unsafe {
-            ioctl(
-                self,
-                Updater::<ReadWriteOpcode<DRM_IOCTL_BASE, NUM, T>, T>::new(data),
-            )
-        }
-    }
-
     pub fn version(&self) -> io::Result<Version> {
         #[inline]
         unsafe fn ret_vector_to_cstring(mut vec: Vec<u8>, len: usize) -> CString {
@@ -66,7 +53,7 @@ impl Device {
 
         let mut version: drm_version = unsafe { mem::zeroed() };
 
-        self.ioctl_rw::<0x00, drm_version>(&mut version)?;
+        unsafe { ioctls::version(self, &mut version)? }
 
         let mut name_buf: Vec<u8> = create_and_reserve_buf(version.name_len as usize + 1);
         let mut date_buf: Vec<u8> = create_and_reserve_buf(version.date_len as usize + 1);
@@ -76,7 +63,7 @@ impl Device {
         version.date = date_buf.as_mut_ptr().cast();
         version.desc = desc_buf.as_mut_ptr().cast();
 
-        self.ioctl_rw::<0x00, drm_version>(&mut version)?;
+        unsafe { ioctls::version(self, &mut version)? }
 
         unsafe {
             let name = ret_vector_to_cstring(name_buf, version.name_len as usize);
@@ -97,7 +84,7 @@ impl Device {
     pub fn get_resources(&self) -> io::Result<Resources> {
         let mut resources: drm_mode_card_res = unsafe { mem::zeroed() };
 
-        self.ioctl_rw::<0xA0, drm_mode_card_res>(&mut resources)?;
+        unsafe { ioctls::mode_getresources(self, &mut resources)? }
 
         let mut fbs: Vec<u32> = create_and_reserve_buf(resources.count_fbs as usize);
         let mut crtcs: Vec<CrtcId> = create_and_reserve_buf(resources.count_crtcs as usize);
@@ -111,7 +98,7 @@ impl Device {
         resources.connector_id_ptr = connectors.as_mut_ptr() as _;
         resources.encoder_id_ptr = encoders.as_mut_ptr() as _;
 
-        self.ioctl_rw::<0xA0, drm_mode_card_res>(&mut resources)?;
+        unsafe { ioctls::mode_getresources(self, &mut resources)? }
 
         unsafe {
             fbs.set_len(resources.count_fbs as usize);
@@ -143,7 +130,7 @@ impl Device {
             connector.modes_ptr = &stack_mode as *const _ as _
         }
 
-        self.ioctl_rw::<0xA7, drm_mode_get_connector>(&mut connector)?;
+        unsafe { ioctls::mode_getconnector(self, &mut connector)? }
 
         let mut encoders: Vec<u32> = create_and_reserve_buf(connector.count_encoders as usize);
         let mut modes: Vec<Mode> = create_and_reserve_buf(connector.count_modes as usize); // FIXME: handle special case where modes is empty
@@ -155,7 +142,7 @@ impl Device {
         connector.props_ptr = props.as_mut_ptr() as _;
         connector.prop_values_ptr = prop_values.as_mut_ptr() as _;
 
-        self.ioctl_rw::<0xA7, drm_mode_get_connector>(&mut connector)?;
+        unsafe { ioctls::mode_getconnector(self, &mut connector)? }
 
         unsafe {
             encoders.set_len(connector.count_encoders as usize);
@@ -200,7 +187,7 @@ impl Device {
 
         encoder.encoder_id = encoder_id.into();
 
-        self.ioctl_rw::<0xA6, drm_mode_get_encoder>(&mut encoder)?;
+        unsafe { ioctls::mode_getencoder(self, &mut encoder)? }
 
         Ok(encoder)
     }
@@ -212,7 +199,7 @@ impl Device {
         create.width = width;
         create.bpp = bpp;
 
-        self.ioctl_rw::<0xB2, drm_mode_create_dumb>(&mut create)?;
+        unsafe { ioctls::mode_create_dumb(self, &mut create)? }
 
         Ok(DumbBuffer {
             fb_id: create.handle,
@@ -241,7 +228,7 @@ impl Device {
         fb_cmd.depth = depth;
         fb_cmd.handle = framebuffer.handle;
 
-        self.ioctl_rw::<0xAE, drm_mode_fb_cmd>(&mut fb_cmd)?;
+        unsafe { ioctls::mode_addfb(self, &mut fb_cmd)? }
 
         Ok(())
     }
@@ -251,7 +238,7 @@ impl Device {
 
         map.handle = framebuffer.fb_id;
 
-        self.ioctl_rw::<0xB3, drm_mode_map_dumb>(&mut map)?;
+        unsafe { ioctls::mode_map_dumb(self, &mut map)? }
 
         let map = unsafe {
             mmap(
@@ -275,7 +262,7 @@ impl Device {
 
         crtc.crtc_id = crtc_id.into();
 
-        self.ioctl_rw::<0xA1, drm_mode_crtc>(&mut crtc)?;
+        unsafe { ioctls::mode_getcrtc(self, &mut crtc)? }
 
         Ok(crtc)
     }
@@ -300,20 +287,21 @@ impl Device {
         crtc.mode = mode.0;
         crtc.mode_valid = 1;
 
-        self.ioctl_rw::<0xA2, drm_mode_crtc>(&mut crtc)
-            .map_err(io::Error::from)
+        unsafe { ioctls::mode_setcrtc(self, &mut crtc)? }
+
+        Ok(())
     }
 
     pub fn get_plane_resources(&self) -> io::Result<Vec<u32>> {
         let mut res: drm_mode_get_plane_res = unsafe { mem::zeroed() };
 
-        self.ioctl_rw::<0xB5, drm_mode_get_plane_res>(&mut res)?;
+        unsafe { ioctls::mode_getplaneresources(self, &mut res)? }
 
         let mut vec: Vec<u32> = create_and_reserve_buf(res.count_planes as usize);
 
         res.plane_id_ptr = vec.as_mut_ptr() as _;
 
-        self.ioctl_rw::<0xB5, drm_mode_get_plane_res>(&mut res)?;
+        unsafe { ioctls::mode_getplaneresources(self, &mut res)? }
 
         unsafe { vec.set_len(res.count_planes as usize) }
 
