@@ -64,7 +64,8 @@ fn main() -> Result<()> {
         if let Some((code, model)) = content.split_once(',') {
             println!("Found {name} with action {action}, code {code} returning {model}");
 
-            let model = find_type(model.trim()).expect(&format!("Invalid model: \"{model}\""));
+            let model =
+                find_type(model.trim()).unwrap_or_else(|| panic!("Invalid model: \"{model}\""));
 
             ioctls.push(IoCtl {
                 name: name.to_string(),
@@ -97,7 +98,7 @@ fn main() -> Result<()> {
         } = ioctl;
 
         let name = format_ident!("{}", name.to_snake_case());
-        let code = u8::from_str_radix(&code.trim_start_matches("0x"), 16)?;
+        let code = u8::from_str_radix(code.trim_start_matches("0x"), 16)?;
 
         let opcode = match action {
             Action::IO => quote! {NoneOpcode},
@@ -106,7 +107,7 @@ fn main() -> Result<()> {
             Action::IOWR => quote! {ReadWriteOpcode},
         };
 
-        let ret = if let Some(ret) = ret {
+        if let Some(ret) = ret {
             let ret = match ret {
                 Model::Struct(m) | Model::Union(m) => {
                     let ident = format_ident!("{m}");
@@ -165,6 +166,7 @@ struct IoCtl {
     ret: Option<Model>,
 }
 
+#[allow(clippy::upper_case_acronyms)]
 enum Action {
     IO,
     IOW,
