@@ -8,6 +8,7 @@ use std::{
     slice,
 };
 
+pub mod ioctls;
 #[allow(nonstandard_style)]
 pub mod sys;
 

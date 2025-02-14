@@ -6,5 +6,8 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.95"
 bindgen = "0.71.1"
+heck = "0.5.0"
+quote = "1.0.38"
+regex = "1.11.1"
 tempfile = "3.16.0"
 xshell = "0.2.7"
