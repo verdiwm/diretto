@@ -3,6 +3,7 @@ fn main() {
         return;
     }
 
+    #[cfg(feature = "gbm")]
     pkg_config::Config::new()
         .probe("gbm")
         .expect("Failed to link to libgbm");
