@@ -40,7 +40,7 @@ fn main() -> Result<()> {
         .use_core()
         .generate()?;
 
-    bindings.write_to_file("../src/sys.rs")?;
+    bindings.write_to_file("../src/drm/sys.rs")?;
 
     let header = fs::read_to_string(work_dir.join("include/drm/drm.h"))?;
 
@@ -111,7 +111,7 @@ fn main() -> Result<()> {
             let ret = match ret {
                 Model::Struct(m) | Model::Union(m) => {
                     let ident = format_ident!("{m}");
-                    quote! { crate::sys::#ident}
+                    quote! { super::sys::#ident}
                 }
                 Model::UnsignedInt => quote! { u32},
             };
@@ -143,7 +143,7 @@ fn main() -> Result<()> {
         use rustix::{
             ioctl::{ioctl,NoneOpcode,WriteOpcode, ReadOpcode, ReadWriteOpcode, Updater, NoArg},
         };
-        use crate::sys::DRM_IOCTL_BASE;
+        use super::sys::DRM_IOCTL_BASE;
 
         #(#functions)*
     };
@@ -152,7 +152,7 @@ fn main() -> Result<()> {
         .truncate(true)
         .write(true)
         .create(true)
-        .open("../src/ioctls.rs")?;
+        .open("../src/drm/ioctls.rs")?;
 
     write!(&mut module_path, "{module}",)?;
 
