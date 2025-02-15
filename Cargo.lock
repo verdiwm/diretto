@@ -397,6 +397,7 @@ dependencies = [
  "bytemuck",
  "glutin",
  "image",
+ "pkg-config",
  "rand 0.9.0",
  "raw-window-handle",
  "rustix",
