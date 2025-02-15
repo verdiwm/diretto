@@ -181,8 +181,7 @@ impl Device {
         })
     }
 
-    // FIXME: use encoderid
-    pub fn get_encoder(&self, encoder_id: u32) -> io::Result<drm_mode_get_encoder> {
+    pub fn get_encoder(&self, encoder_id: EncoderId) -> io::Result<drm_mode_get_encoder> {
         let mut encoder: drm_mode_get_encoder = unsafe { mem::zeroed() };
 
         encoder.encoder_id = encoder_id.into();
