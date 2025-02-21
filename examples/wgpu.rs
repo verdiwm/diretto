@@ -6,7 +6,7 @@ use std::{
 };
 
 use anyhow::{Context, Result};
-use diretto::{Connector, Device};
+use diretto::drm::{Connector, Device};
 use raw_window_handle::{DisplayHandle, DrmDisplayHandle, DrmWindowHandle, WindowHandle};
 use rustix::fs::{self, Mode, OFlags};
 use tracing::{debug, info};
