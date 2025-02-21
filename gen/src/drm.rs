@@ -9,7 +9,7 @@ use heck::ToSnakeCase;
 use quote::{format_ident, quote};
 use regex::Regex;
 use tempfile::TempDir;
-use xshell::{cmd, Shell};
+use xshell::{Shell, cmd};
 
 const LINUX_VERSION: &str = "v6.13";
 

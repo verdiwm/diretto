@@ -498,7 +498,7 @@ unsafe extern "C" {
 }
 unsafe extern "C" {
     pub fn gbm_bo_get_handle_for_plane(bo: *mut gbm_bo, plane: ::core::ffi::c_int)
-        -> gbm_bo_handle;
+    -> gbm_bo_handle;
 }
 unsafe extern "C" {
     pub fn gbm_bo_get_fd_for_plane(

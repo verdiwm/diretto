@@ -1,5 +1,5 @@
 use std::{
-    ffi::{c_int, CStr, CString},
+    ffi::{CStr, CString, c_int},
     fmt::Display,
     io, mem,
     num::NonZeroU32,
@@ -18,7 +18,7 @@ use sys::{
     drm_mode_modeinfo, drm_version,
 };
 
-use rustix::mm::{mmap, munmap, MapFlags, ProtFlags};
+use rustix::mm::{MapFlags, ProtFlags, mmap, munmap};
 
 #[derive(Debug)]
 pub struct Device {
@@ -40,15 +40,17 @@ impl Device {
     pub fn version(&self) -> io::Result<Version> {
         #[inline]
         unsafe fn ret_vector_to_cstring(mut vec: Vec<u8>, len: usize) -> CString {
-            vec.set_len(len);
+            unsafe {
+                vec.set_len(len);
 
-            if let Some(last) = vec.last() {
-                if *last != b'\0' {
-                    vec.push(b'\0')
+                if let Some(last) = vec.last() {
+                    if *last != b'\0' {
+                        vec.push(b'\0')
+                    }
                 }
-            }
 
-            CString::from_vec_with_nul_unchecked(vec)
+                CString::from_vec_with_nul_unchecked(vec)
+            }
         }
 
         let mut version: drm_version = unsafe { mem::zeroed() };
@@ -411,7 +413,7 @@ pub struct ConnectorId(NonZeroU32);
 
 impl ConnectorId {
     pub const unsafe fn new_unchecked(id: u32) -> Self {
-        Self(NonZeroU32::new_unchecked(id))
+        unsafe { Self(NonZeroU32::new_unchecked(id)) }
     }
 }
 
@@ -439,7 +441,7 @@ pub struct CrtcId(NonZeroU32);
 
 impl CrtcId {
     pub const unsafe fn new_unchecked(id: u32) -> Self {
-        Self(NonZeroU32::new_unchecked(id))
+        unsafe { Self(NonZeroU32::new_unchecked(id)) }
     }
 }
 
