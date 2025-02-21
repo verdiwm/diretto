@@ -139,6 +139,7 @@ pub fn generate_drm_bindings() -> Result<()> {
     }
 
     let module = quote! {
+        #![allow(clippy::missing_safety_doc)]
         use std::os::fd::AsFd;
         use rustix::{
             ioctl::{ioctl,NoneOpcode,WriteOpcode, ReadOpcode, ReadWriteOpcode, Updater, NoArg},

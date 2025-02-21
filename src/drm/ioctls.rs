@@ -1,3 +1,4 @@
+#![allow(clippy::missing_safety_doc)]
 use super::sys::DRM_IOCTL_BASE;
 use rustix::ioctl::{ioctl, NoArg, NoneOpcode, ReadOpcode, ReadWriteOpcode, Updater, WriteOpcode};
 use std::os::fd::AsFd;
