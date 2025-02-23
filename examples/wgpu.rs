@@ -60,7 +60,7 @@ async fn main() -> Result<()> {
 
     let connector = connectors
         .into_iter()
-        .find(|connector| connector.connection == 1) // 1 means connected
+        .find(|connector| connector.connection.is_connected()) // 1 means connected
         .unwrap();
 
     let mode = connector.modes.first().expect("Connector has no modes");

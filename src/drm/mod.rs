@@ -171,7 +171,7 @@ impl Device {
             connector_id: unsafe { ConnectorId::new_unchecked(connector_id) },
             connector_type,
             connector_type_id,
-            connection,
+            connection: connection.into(),
             mm_width,
             mm_height,
             subpixel,
@@ -368,35 +368,13 @@ pub struct Resources {
     pub max_height: u32,
 }
 
-// impl Resources {
-//     pub fn get_connectors(&self, probe: bool) -> GetConnectors {
-//         GetConnectors {
-//             connectors: &self.connectors,
-//             probe,
-//         }
-//     }
-// }
-
-// pub struct GetConnectors<'a> {
-//     connectors: &'a [ConnectorId],
-//     probe: bool,
-// }
-
-// impl Iterator for GetConnectors<'_> {
-//     type Item = io::Result<Connector>;
-
-//     fn next(&mut self) -> Option<Self::Item> {
-//         self.get_connector(self., true)
-//     }
-// }
-
 #[derive(Debug)]
 pub struct Connector {
     pub encoder_id: u32,
     pub connector_id: ConnectorId,
     pub connector_type: u32,
     pub connector_type_id: u32,
-    pub connection: u32,
+    pub connection: ConnectorStatus,
     pub mm_width: u32,
     pub mm_height: u32,
     pub subpixel: u32,
@@ -405,6 +383,30 @@ pub struct Connector {
     pub modes: Vec<Mode>,
     pub props: Vec<u32>,
     pub prop_values: Vec<u64>,
+}
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
+#[repr(u32)]
+pub enum ConnectorStatus {
+    Connected = 1,
+    Disconnected = 2,
+    Unknown = 3,
+}
+
+impl From<u32> for ConnectorStatus {
+    fn from(value: u32) -> Self {
+        match value {
+            1 => Self::Connected,
+            2 => Self::Disconnected,
+            _ => Self::Unknown,
+        }
+    }
+}
+
+impl ConnectorStatus {
+    pub const fn is_connected(&self) -> bool {
+        matches!(self, Self::Connected)
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
