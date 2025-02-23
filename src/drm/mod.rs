@@ -477,7 +477,22 @@ impl From<EncoderId> for u32 {
 
 #[derive(Debug, Clone, Copy)]
 #[repr(transparent)]
-pub struct Mode(pub drm_mode_modeinfo);
+pub struct Mode(drm_mode_modeinfo);
+
+bitflags::bitflags! {
+    /// Display mode type
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    pub struct ModeType: u32 {
+        const BUILTIN = sys::DRM_MODE_TYPE_BUILTIN;
+        const CLOCK_C = sys::DRM_MODE_TYPE_CLOCK_C;
+        const CRTC_C = sys::DRM_MODE_TYPE_CRTC_C;
+        const PREFERRED = sys::DRM_MODE_TYPE_PREFERRED;
+        const DEFAULT = sys::DRM_MODE_TYPE_DEFAULT;
+        const USERDEF = sys::DRM_MODE_TYPE_USERDEF;
+        const DRIVER = sys::DRM_MODE_TYPE_DRIVER;
+        const ALL = sys::DRM_MODE_TYPE_ALL;
+    }
+}
 
 impl Mode {
     pub const fn name(&self) -> &CStr {
@@ -506,6 +521,10 @@ impl Mode {
             / (self.0.htotal as f64 * self.0.vtotal as f64 * self.0.vscan.max(1) as f64))
             * 1000.0
             + 0.5) as u32
+    }
+
+    pub fn ty(&self) -> ModeType {
+        ModeType::from_bits_truncate(self.0.type_)
     }
 }
 

@@ -19,6 +19,7 @@ gbm = ["dep:pkg-config"]
 tracing = ["dep:tracing"]
 
 [dependencies]
+bitflags = "2.8.0"
 rustix = { version = "0.38.44", optional = true, default-features = false, features = [
     "mm",
     "std",
