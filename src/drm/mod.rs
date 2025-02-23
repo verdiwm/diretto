@@ -308,6 +308,23 @@ impl Device {
 
         Ok(vec)
     }
+
+    pub fn set_client_capability(&self, cap: ClientCapability, value: bool) -> io::Result<()> {
+        let mut cap = sys::drm_set_client_cap {
+            capability: cap as u64,
+            value: value as u64,
+        };
+
+        unsafe { ioctls::set_client_cap(&self.fd, &mut cap)? };
+
+        Ok(())
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
+#[repr(u32)]
+pub enum ClientCapability {
+    Atomic = sys::DRM_CLIENT_CAP_ATOMIC,
 }
 
 pub struct DumbBufferMapping<'a> {
