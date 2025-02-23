@@ -309,13 +309,75 @@ impl Device {
         Ok(vec)
     }
 
+    // FIXME: use sealed traits and wrapper types to make this safe
+    pub unsafe fn get_properties(
+        &self,
+        object_id: u32,
+        object_type: u32,
+    ) -> io::Result<(Vec<u32>, Vec<u64>)> {
+        let mut res: sys::drm_mode_obj_get_properties = unsafe { mem::zeroed() };
+
+        res.obj_id = object_id;
+        res.obj_type = object_type;
+
+        unsafe { ioctls::mode_obj_getproperties(self, &mut res)? }
+
+        let mut props: Vec<u32> = create_and_reserve_buf(res.count_props as usize);
+        let mut values: Vec<u64> = create_and_reserve_buf(res.count_props as usize);
+
+        res.props_ptr = props.as_mut_ptr() as _;
+        res.prop_values_ptr = values.as_mut_ptr() as _;
+
+        unsafe { ioctls::mode_obj_getproperties(self, &mut res)? }
+
+        unsafe {
+            props.set_len(res.count_props as usize);
+            values.set_len(res.count_props as usize);
+        }
+
+        Ok((props, values))
+    }
+
+    pub unsafe fn get_property(&self, prop_id: u32) -> io::Result<(CString, Vec<u64>)> {
+        let mut res: sys::drm_mode_get_property = unsafe { mem::zeroed() };
+
+        res.prop_id = prop_id;
+
+        unsafe { ioctls::mode_getproperty(self, &mut res)? }
+
+        let mut values: Vec<u64> = create_and_reserve_buf(res.count_values as usize);
+        // let mut blobs: Vec<u64> = create_and_reserve_buf(res.count_values as usize);
+
+        res.values_ptr = values.as_mut_ptr() as _;
+        // res.enum_blob_ptr = blobs.as_mut_ptr() as _;
+        res.count_enum_blobs = 0; // FIXME: this needs special handling so just ignore it for now
+
+        unsafe { ioctls::mode_getproperty(self, &mut res)? }
+
+        unsafe {
+            values.set_len(res.count_values as usize);
+            // blobs.set_len(res.count_enum_blobs as usize);
+        }
+
+        let name = unsafe { CStr::from_ptr(res.name.as_ptr().cast()) };
+
+        Ok((name.to_owned(), values))
+    }
+
+    pub fn get_plane(&self) -> io::Result<()> {
+        let mut res: sys::drm_mode_get_plane = unsafe { mem::zeroed() };
+        unsafe { ioctls::mode_getplane(self, &mut res)? };
+
+        Ok(())
+    }
+
     pub fn set_client_capability(&self, cap: ClientCapability, value: bool) -> io::Result<()> {
         let mut cap = sys::drm_set_client_cap {
             capability: cap as u64,
             value: value as u64,
         };
 
-        unsafe { ioctls::set_client_cap(&self.fd, &mut cap)? };
+        unsafe { ioctls::set_client_cap(self, &mut cap)? };
 
         Ok(())
     }
