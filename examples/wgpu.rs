@@ -7,7 +7,6 @@ use anyhow::{Context, Result, bail};
 use diretto::{
     ClientCapability, Connector, Device, ModeType, Resources, sys::DRM_MODE_OBJECT_PLANE,
 };
-use raw_window_handle::{DisplayHandle, DrmDisplayHandle, DrmWindowHandle, WindowHandle};
 use rustix::fs::{self, Mode, OFlags};
 use tracing::{debug, trace};
 use wgpu::SurfaceTargetUnsafe;
@@ -86,27 +85,16 @@ async fn main() -> Result<()> {
 
     let plane = plane.expect("Failed to find an appropriate plane");
 
-    let display_handle = unsafe {
-        DisplayHandle::borrow_raw({
-            let handle = DrmDisplayHandle::new(device.as_fd().as_raw_fd());
-            handle.into()
-        })
-    };
-
-    let window_handle = unsafe {
-        WindowHandle::borrow_raw({
-            let handle =
-                DrmWindowHandle::new_with_connector_id(plane, connector.connector_id.into());
-            handle.into()
-        })
+    let surface_target = SurfaceTargetUnsafe::Drm {
+        fd: device.as_fd().as_raw_fd(),
+        plane,
+        connector_id: connector.connector_id.into(),
+        width: mode.display_width() as u32,
+        height: mode.display_height() as u32,
+        refresh_rate: mode.vertical_refresh_rate() * 1000,
     };
 
     let instance = wgpu::Instance::default();
-
-    let surface_target = SurfaceTargetUnsafe::RawHandle {
-        raw_display_handle: display_handle.as_raw(),
-        raw_window_handle: window_handle.as_raw(),
-    };
 
     let surface = unsafe { instance.create_surface_unsafe(surface_target)? };
     let adapter = instance
