@@ -3,7 +3,7 @@ members = ["gen"]
 
 [package]
 name = "diretto"
-version = "0.0.5"
+version = "0.0.6"
 edition = "2024"
 license = "Apache-2.0"
 authors = ["Matilde Morrone <contact@morrone.dev>"]
