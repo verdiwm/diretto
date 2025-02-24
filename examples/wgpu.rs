@@ -94,7 +94,11 @@ async fn main() -> Result<()> {
         refresh_rate: mode.vertical_refresh_rate() * 1000,
     };
 
-    let instance = wgpu::Instance::default();
+    let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
+        flags: wgpu::InstanceFlags::default()
+            | wgpu::InstanceFlags::ALLOW_UNDERLYING_NONCOMPLIANT_ADAPTER,
+        ..Default::default()
+    });
 
     let surface = unsafe { instance.create_surface_unsafe(surface_target)? };
     let adapter = instance
