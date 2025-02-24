@@ -14,20 +14,15 @@ repository = "https://github.com/verdiwm/diretto"
 include = ["src/**/*.rs", "README.md", "LICENSE"]
 
 [features]
-drm = ["dep:rustix"]
-gbm = ["dep:pkg-config"]
 tracing = ["dep:tracing"]
 
 [dependencies]
 bitflags = "2.8.0"
-rustix = { version = "0.38.44", optional = true, default-features = false, features = [
+rustix = { version = "0.38.44", default-features = false, features = [
     "mm",
     "std",
 ] }
 tracing = { version = "0.1.41", optional = true }
-
-[build-dependencies]
-pkg-config = { version = "0.3.31", optional = true }
 
 [dev-dependencies]
 anyhow = "1.0.95"
@@ -53,7 +48,7 @@ glutin = { version = "0.32.2", default-features = false, features = ["egl"] }
 
 [[example]]
 name = "wgpu"
-required-features = ["drm", "tracing"]
+required-features = ["tracing"]
 
 [patch.crates-io]
 wgpu = { git = "https://github.com/verdiwm/wgpu", branch = "drm-support-v2" }

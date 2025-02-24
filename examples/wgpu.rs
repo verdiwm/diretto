@@ -4,7 +4,7 @@ use std::{
 };
 
 use anyhow::{Context, Result, bail};
-use diretto::drm::{
+use diretto::{
     ClientCapability, Connector, Device, ModeType, Resources, sys::DRM_MODE_OBJECT_PLANE,
 };
 use raw_window_handle::{DisplayHandle, DrmDisplayHandle, DrmWindowHandle, WindowHandle};
