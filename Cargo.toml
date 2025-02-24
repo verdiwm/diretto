@@ -40,7 +40,10 @@ tracing-subscriber = { version = "0.3.19", features = [
     "env-filter",
     "tracing-log",
 ] }
-wgpu = { version = "24.0.0", default-features = false, features = ["wgsl"] }
+wgpu = { version = "24.0.0", default-features = false, features = [
+    "wgsl",
+    "vulkan",
+] }
 tokio = { version = "1.43.0", features = ["macros", "rt-multi-thread"] }
 raw-window-handle = "0.6.2"
 bytemuck = { version = "1.21.0", features = ["derive"] }
@@ -52,11 +55,7 @@ glutin = { version = "0.32.2", default-features = false, features = ["egl"] }
 name = "wgpu"
 required-features = ["drm", "tracing"]
 
-[[example]]
-name = "egl"
-required-features = ["drm", "gbm", "tracing"]
-
 [patch.crates-io]
-wgpu = { git = "https://github.com/verdiwm/wgpu", branch = "drm-support" }
+wgpu = { git = "https://github.com/verdiwm/wgpu", branch = "drm-support-v2" }
 # wgpu = { path = "../wgpu/wgpu" }
 raw-window-handle = { git = "https://github.com/verdiwm/raw-window-handle", branch = "drm-connector" }

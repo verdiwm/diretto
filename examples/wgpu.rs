@@ -1,74 +1,90 @@
 use std::{
-    borrow::Cow,
-    io,
     os::fd::{AsFd, AsRawFd},
     time::{Duration, Instant},
 };
 
-use anyhow::{Context, Result};
-use diretto::drm::{Connector, Device};
+use anyhow::{Context, Result, bail};
+use diretto::drm::{
+    ClientCapability, Connector, Device, ModeType, Resources, sys::DRM_MODE_OBJECT_PLANE,
+};
 use raw_window_handle::{DisplayHandle, DrmDisplayHandle, DrmWindowHandle, WindowHandle};
 use rustix::fs::{self, Mode, OFlags};
-use tracing::{debug, info};
+use tracing::{debug, trace};
 use wgpu::SurfaceTargetUnsafe;
 
 #[tokio::main]
 async fn main() -> Result<()> {
     tracing_subscriber::fmt::init();
 
-    let fd = fs::open(
-        "/dev/dri/card0",
-        OFlags::RDWR | OFlags::NONBLOCK,
-        Mode::empty(),
-    )?;
-    let device = unsafe { Device::new_unchecked(fd) };
+    let device = find_drm_device()?;
+    let resources = device.get_resources()?;
+    let connector = find_drm_connector(&device, &resources)?;
 
-    info!("Opened device /dev/dri/card0");
+    let mode = {
+        let mut mode = None;
 
-    let version = device.version()?;
+        let mut area = 0;
+
+        for current_mode in connector.modes {
+            if current_mode.ty().contains(ModeType::PREFERRED) {
+                mode = Some(current_mode);
+                break;
+            }
+
+            let current_area = current_mode.display_width() * current_mode.display_height();
+            if current_area > area {
+                mode = Some(current_mode);
+                area = current_area;
+            }
+        }
+
+        mode.expect("Couldn't find a mode")
+    };
 
     debug!(
-        "Driver: {} ({}) version {}.{}.{} ({})",
-        version.name.to_string_lossy(),
-        version.desc.to_string_lossy(),
-        version.major,
-        version.minor,
-        version.patchlevel,
-        version.date.to_string_lossy()
+        "Selected mode {}x{}@{}",
+        mode.display_width(),
+        mode.display_height(),
+        mode.vertical_refresh_rate()
     );
 
-    let res = device.get_resources()?;
+    device.set_client_capability(ClientCapability::Atomic, true)?;
 
-    let connectors = res
-        .connectors
-        .iter()
-        .map(|id| device.get_connector(*id, true))
-        .collect::<io::Result<Vec<Connector>>>()?;
+    let plane_resources = device.get_plane_resources()?;
 
-    for connector in &connectors {
-        debug!("Found connector {}", connector.connector_id);
+    let mut plane = None;
 
-        for mode in &connector.modes {
-            debug!(
-                "Found mode {}@{} for connector {}",
-                mode.name().to_string_lossy(),
-                mode.vertical_refresh_rate(),
-                connector.connector_id
-            )
+    for id in plane_resources {
+        debug!("Found plane {id}");
+        let (props, values) = unsafe { device.get_properties(id, DRM_MODE_OBJECT_PLANE)? };
+
+        trace!("Properties for plane {id}:");
+        for (index, prop) in props.into_iter().enumerate() {
+            let (name, possible_values) = unsafe { device.get_property(prop)? };
+            let current_value = values[index];
+
+            trace!(
+                "  Property '{}' = {} (possible values: {:?})",
+                name.to_string_lossy(),
+                current_value,
+                possible_values
+            );
+
+            if name.as_c_str() == c"type" {
+                match current_value {
+                    1 => {
+                        trace!("    This is a primary plane");
+                        plane = Some(id)
+                    }
+                    2 => trace!("    This is an overlay plane"),
+                    3 => trace!("    This is a cursor plane"),
+                    _ => trace!("    Unknown plane type"),
+                }
+            }
         }
     }
 
-    let connector = connectors
-        .into_iter()
-        .find(|connector| connector.connection.is_connected()) // 1 means connected
-        .unwrap();
-
-    let mode = connector.modes.first().expect("Connector has no modes");
-
-    let planes = device.get_plane_resources()?;
-
-    // FIXME: use a proper strategy to determine the best plane
-    let plane = planes[0];
+    let plane = plane.expect("Failed to find an appropriate plane");
 
     let display_handle = unsafe {
         DisplayHandle::borrow_raw({
@@ -85,11 +101,7 @@ async fn main() -> Result<()> {
         })
     };
 
-    debug!("Got here?");
-
     let instance = wgpu::Instance::default();
-
-    debug!("not here?");
 
     let surface_target = SurfaceTargetUnsafe::RawHandle {
         raw_display_handle: display_handle.as_raw(),
@@ -99,9 +111,8 @@ async fn main() -> Result<()> {
     let surface = unsafe { instance.create_surface_unsafe(surface_target)? };
     let adapter = instance
         .request_adapter(&wgpu::RequestAdapterOptions {
-            power_preference: wgpu::PowerPreference::default(),
+            power_preference: wgpu::PowerPreference::LowPower,
             force_fallback_adapter: false,
-            // Request an adapter which can render to our surface
             compatible_surface: Some(&surface),
         })
         .await
@@ -122,43 +133,6 @@ async fn main() -> Result<()> {
         .await
         .context("Failed to create device")?;
 
-    // Load the shaders from disk
-    let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-        label: None,
-        source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("shader.wgsl"))),
-    });
-
-    let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-        label: None,
-        bind_group_layouts: &[],
-        push_constant_ranges: &[],
-    });
-
-    let swapchain_capabilities = surface.get_capabilities(&adapter);
-    let swapchain_format = swapchain_capabilities.formats[0];
-
-    let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-        label: None,
-        layout: Some(&pipeline_layout),
-        vertex: wgpu::VertexState {
-            module: &shader,
-            entry_point: Some("vs_main"),
-            buffers: &[],
-            compilation_options: Default::default(),
-        },
-        fragment: Some(wgpu::FragmentState {
-            module: &shader,
-            entry_point: Some("fs_main"),
-            compilation_options: Default::default(),
-            targets: &[Some(swapchain_format.into())],
-        }),
-        primitive: wgpu::PrimitiveState::default(),
-        depth_stencil: None,
-        multisample: wgpu::MultisampleState::default(),
-        multiview: None,
-        cache: None,
-    });
-
     let config = surface
         .get_default_config(
             &adapter,
@@ -174,36 +148,64 @@ async fn main() -> Result<()> {
     while Instant::now().duration_since(start) < Duration::from_secs(5) {
         let frame = surface
             .get_current_texture()
-            .expect("Failed to acquire next swap chain texture");
+            .expect("failed to acquire next swapchain texture");
 
-        let view = frame
+        let texture_view = frame
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
 
-        let mut encoder =
-            device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
-        {
-            let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: None,
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &view,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color::GREEN),
-                        store: wgpu::StoreOp::Store,
-                    },
-                })],
-                depth_stencil_attachment: None,
-                timestamp_writes: None,
-                occlusion_query_set: None,
-            });
-            rpass.set_pipeline(&render_pipeline);
-            rpass.draw(0..3, 0..1);
-        }
+        let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
+        // Create the renderpass which will clear the screen.
+        let renderpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: None,
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: &texture_view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(wgpu::Color::GREEN),
+                    store: wgpu::StoreOp::Store,
+                },
+            })],
+            depth_stencil_attachment: None,
+            timestamp_writes: None,
+            occlusion_query_set: None,
+        });
 
-        queue.submit(Some(encoder.finish()));
+        // If you wanted to call any drawing commands, they would go here.
+
+        // End the renderpass.
+        drop(renderpass);
+
+        // Submit the command in the queue to execute
+        queue.submit([encoder.finish()]);
+
         frame.present();
     }
 
     Ok(())
+}
+
+fn find_drm_device() -> Result<Device> {
+    // TODO: implement an actual strategy
+    let fd = fs::open(
+        "/dev/dri/card1",
+        OFlags::RDWR | OFlags::NONBLOCK,
+        Mode::empty(),
+    )?;
+    let device = unsafe { Device::new_unchecked(fd) };
+
+    debug!("Opened device /dev/dri/card1");
+
+    Ok(device)
+}
+
+fn find_drm_connector(device: &Device, resources: &Resources) -> Result<Connector> {
+    for connector_id in &resources.connectors {
+        let connector = device.get_connector(*connector_id, false)?;
+        if connector.connection.is_connected() {
+            return Ok(connector);
+        }
+    }
+
+    bail!("No connected display found")
 }
