@@ -17,16 +17,16 @@ include = ["src/**/*.rs", "README.md", "LICENSE"]
 tracing = ["dep:tracing"]
 
 [dependencies]
-bitflags = "2.8.0"
-rustix = { version = "0.38.44", default-features = false, features = [
+bitflags = "2.9.0"
+rustix = { version = "1.0.0", default-features = false, features = [
     "mm",
     "std",
 ] }
 tracing = { version = "0.1.41", optional = true }
 
 [dev-dependencies]
-anyhow = "1.0.95"
-rustix = { version = "0.38.44", default-features = false, features = [
+anyhow = "1.0.97"
+rustix = { version = "1.0.0", default-features = false, features = [
     "event",
     "fs",
     "std",
@@ -40,7 +40,7 @@ wgpu = { version = "24.0.0", default-features = false, features = [
     "vulkan",
 ] }
 tokio = { version = "1.43.0", features = ["macros", "rt-multi-thread"] }
-bytemuck = { version = "1.21.0", features = ["derive"] }
+bytemuck = { version = "1.22.0", features = ["derive"] }
 image = "0.25.5"
 rand = "0.9.0"
 glutin = { version = "0.32.2", default-features = false, features = ["egl"] }

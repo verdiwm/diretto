@@ -101,10 +101,10 @@ fn main() -> Result<()> {
         let code = u8::from_str_radix(code.trim_start_matches("0x"), 16)?;
 
         let opcode = match action {
-            Action::IO => quote! {NoneOpcode},
-            Action::IOW => quote! {WriteOpcode},
-            Action::IOR => quote! {ReadOpcode},
-            Action::IOWR => quote! {ReadWriteOpcode},
+            Action::IO => quote! {opcode::none},
+            Action::IOW => quote! {opcode::write},
+            Action::IOR => quote! {opcode::read},
+            Action::IOWR => quote! {opcode::read_write},
         };
 
         if let Some(ret) = ret {
@@ -119,7 +119,7 @@ fn main() -> Result<()> {
             functions.push(quote! {
                 pub unsafe fn #name<F: AsFd>(fd: F, data: &mut #ret) -> rustix::io::Result<()> {
                     unsafe {
-                        ioctl(fd, Updater::<#opcode<DRM_IOCTL_BASE, #code , #ret>, #ret>::new(data))
+                        ioctl(fd, Updater::<{#opcode::<#ret>(DRM_IOCTL_BASE, #code) }, #ret>::new(data))
                     }
                 }
             });
@@ -131,7 +131,7 @@ fn main() -> Result<()> {
             functions.push(quote! {
                 pub unsafe fn #name<F: AsFd>(fd: F) -> rustix::io::Result<()> {
                     unsafe {
-                        ioctl(fd, NoArg::<NoneOpcode<DRM_IOCTL_BASE, #code, ()>>::new())
+                        ioctl(fd, NoArg::<{opcode::none(DRM_IOCTL_BASE, #code)}>::new())
                     }
                 }
             });
@@ -140,11 +140,9 @@ fn main() -> Result<()> {
 
     let module = quote! {
         #![allow(clippy::missing_safety_doc)]
-        use std::os::fd::AsFd;
-        use rustix::{
-            ioctl::{ioctl,NoneOpcode,WriteOpcode, ReadOpcode, ReadWriteOpcode, Updater, NoArg},
-        };
         use super::sys::DRM_IOCTL_BASE;
+        use rustix::ioctl::{NoArg, Updater, ioctl, opcode};
+        use std::os::fd::AsFd;
 
         #(#functions)*
     };
