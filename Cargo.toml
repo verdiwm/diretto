@@ -50,5 +50,4 @@ name = "wgpu"
 required-features = ["tracing"]
 
 [patch.crates-io]
-wgpu = { git = "https://github.com/verdiwm/wgpu", branch = "drm-support-v2" }
-# wgpu = { path = "../wgpu/wgpu" }
+wgpu = { git = "https://github.com/gfx-rs/wgpu" }
