@@ -21,6 +21,7 @@ use sys::{
 use rustix::mm::{MapFlags, ProtFlags, mmap, munmap};
 
 #[derive(Debug)]
+#[repr(transparent)]
 pub struct Device {
     fd: OwnedFd,
 }
