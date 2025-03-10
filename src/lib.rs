@@ -40,7 +40,7 @@ impl Device {
 
     pub fn version(&self) -> io::Result<Version> {
         #[inline]
-        unsafe fn ret_vector_to_cstring(mut vec: Vec<u8>, len: usize) -> CString {
+        unsafe fn ret_vector_to_string(mut vec: Vec<u8>, len: usize) -> String {
             unsafe {
                 vec.set_len(len);
 
@@ -51,6 +51,8 @@ impl Device {
                 }
 
                 CString::from_vec_with_nul_unchecked(vec)
+                    .to_string_lossy()
+                    .into_owned()
             }
         }
 
@@ -69,9 +71,9 @@ impl Device {
         unsafe { ioctls::version(self, &mut version)? }
 
         unsafe {
-            let name = ret_vector_to_cstring(name_buf, version.name_len as usize);
-            let date = ret_vector_to_cstring(date_buf, version.date_len as usize);
-            let desc = ret_vector_to_cstring(desc_buf, version.desc_len as usize);
+            let name = ret_vector_to_string(name_buf, version.name_len as usize);
+            let date = ret_vector_to_string(date_buf, version.date_len as usize);
+            let desc = ret_vector_to_string(desc_buf, version.desc_len as usize);
 
             Ok(Version {
                 major: version.version_major,
@@ -443,9 +445,9 @@ pub struct Version {
     pub major: c_int,
     pub minor: c_int,
     pub patchlevel: c_int,
-    pub name: CString,
-    pub date: CString,
-    pub desc: CString,
+    pub name: String,
+    pub date: String,
+    pub desc: String,
 }
 
 #[derive(Debug)]
