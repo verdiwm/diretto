@@ -90,6 +90,12 @@ impl Device {
         Ok(())
     }
 
+    pub fn drop_master(&self) -> io::Result<()> {
+        unsafe { ioctls::drop_master(self)? }
+
+        Ok(())
+    }
+
     pub fn get_resources(&self) -> io::Result<Resources> {
         let mut resources: drm_mode_card_res = unsafe { mem::zeroed() };
 
