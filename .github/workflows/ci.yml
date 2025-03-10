@@ -1,0 +1,22 @@
+name: ci
+on: [push, pull_request]
+
+env:
+  RUSTFLAGS: "-Dwarnings"
+
+jobs:
+  test:
+    name: Build and test
+    runs-on: ubuntu-latest
+    container: ghcr.io/verdiwm/ci-image:latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # - name: Run tests
+      #   run: cargo nextest run --all-features
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Check clippy
+        run: cargo clippy --all-targets --all-features
