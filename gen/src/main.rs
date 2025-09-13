@@ -11,7 +11,7 @@ use regex::Regex;
 use tempfile::TempDir;
 use xshell::{Shell, cmd};
 
-const LINUX_VERSION: &str = "v6.13";
+const LINUX_VERSION: &str = "v6.16";
 
 fn main() -> Result<()> {
     let sh = Shell::new()?;
