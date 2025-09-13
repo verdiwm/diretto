@@ -17,37 +17,34 @@ include = ["src/**/*.rs", "README.md", "LICENSE"]
 tracing = ["dep:tracing"]
 
 [dependencies]
-bitflags = "2.9.0"
-rustix = { version = "1.0.0", default-features = false, features = [
+bitflags = "2.9.4"
+rustix = { version = "1.1.2", default-features = false, features = [
     "mm",
     "std",
 ] }
 tracing = { version = "0.1.41", optional = true }
 
 [dev-dependencies]
-anyhow = "1.0.97"
-rustix = { version = "1.0.0", default-features = false, features = [
+anyhow = "1.0.99"
+rustix = { version = "1.1.2", default-features = false, features = [
     "event",
     "fs",
     "std",
 ] }
-tracing-subscriber = { version = "0.3.19", features = [
+tracing-subscriber = { version = "0.3.20", features = [
     "env-filter",
     "tracing-log",
 ] }
-wgpu = { version = "24.0.0", default-features = false, features = [
+wgpu = { version = "26.0.1", default-features = false, features = [
     "wgsl",
     "vulkan",
 ] }
-tokio = { version = "1.43.0", features = ["macros", "rt-multi-thread"] }
-bytemuck = { version = "1.22.0", features = ["derive"] }
-image = "0.25.5"
-rand = "0.9.0"
-glutin = { version = "0.32.2", default-features = false, features = ["egl"] }
+tokio = { version = "1.47.1", features = ["macros", "rt-multi-thread"] }
+bytemuck = { version = "1.23.2", features = ["derive"] }
+image = "0.25.8"
+rand = "0.9.2"
+glutin = { version = "0.32.3", default-features = false, features = ["egl"] }
 
 [[example]]
 name = "wgpu"
 required-features = ["tracing"]
-
-[patch.crates-io]
-wgpu = { git = "https://github.com/gfx-rs/wgpu" }

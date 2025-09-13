@@ -5,10 +5,10 @@ edition = "2024"
 publish = false
 
 [dependencies]
-anyhow = "1.0.97"
-bindgen = "0.71.1"
+anyhow = "1.0.99"
+bindgen = "0.72.1"
 heck = "0.5.0"
-quote = "1.0.39"
-regex = "1.11.1"
-tempfile = "3.18.0"
+quote = "1.0.40"
+regex = "1.11.2"
+tempfile = "3.22.0"
 xshell = "0.2.7"
